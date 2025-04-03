@@ -67,49 +67,32 @@
     <script>
         let verificationCount = 0;
         const totalClicksRequired = 3;
-        let lastClick = null; // Stores last click coordinates
         let lastClickTime = 0; // Tracks last click time
-        
+        let cursorMoved = false; // Tracks if the cursor moved
+
+        document.addEventListener("mousemove", () => {
+            cursorMoved = true; // Detects any cursor movement
+        });
+
         function verifyCaptcha(event) {
             const box = document.getElementById('captchaBox');
             const status = document.getElementById('status');
             const botMessage = document.getElementById('botMessage');
 
-            const x = event.clientX;
-            const y = event.clientY;
             const now = Date.now();
 
             // Enforce minimum click delay (500ms)
             if (now - lastClickTime < 500) {
-                failCaptcha("Too fast! Wait and try again.", "Clicking too fast detected!");
+                failCaptcha("Too fast! Slow down.", "Clicking too fast detected!");
                 return;
             }
 
-            if (lastClick) {
-                const dx = x - lastClick.x;
-                const dy = y - lastClick.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                const angle = Math.atan2(dy, dx) * (180 / Math.PI);
-
-                // Ensure clicks are at least 20px apart
-                if (distance < 20) {
-                    failCaptcha("Clicks must be at least 20px apart!", "Same spot clicking detected!");
-                    return;
-                }
-
-                // Ensure the angle variation is within 15 degrees
-                if (verificationCount > 1) { // First click has no angle reference
-                    const angleDiff = Math.abs(angle - lastClick.angle);
-                    if (angleDiff > 15) {
-                        failCaptcha("Stay on a straight path!", "Irregular movement detected!");
-                        return;
-                    }
-                }
-
-                lastClick.angle = angle;
+            // If no cursor movement detected, fail the CAPTCHA
+            if (verificationCount === 0 && !cursorMoved) {
+                failCaptcha("Move your cursor before clicking!", "Cursor did not move before first click!");
+                return;
             }
 
-            lastClick = { x, y, angle: 0 }; // Initialize angle after first click
             lastClickTime = now;
             verificationCount++;
 
@@ -141,8 +124,8 @@
             box.style.boxShadow = "0 0 16px #ff0000";
             
             verificationCount = 0;
-            lastClick = null;
             lastClickTime = 0;
+            cursorMoved = false;
 
             setTimeout(() => {
                 status.textContent = `Click ${totalClicksRequired} times to verify`;
