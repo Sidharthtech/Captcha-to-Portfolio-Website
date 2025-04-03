@@ -118,6 +118,11 @@
                 return;
             }
 
+            if (isLinearMovement(movementData)) {
+                failCaptcha("Too precise! Try natural movement.", "Highly linear movement detected!");
+                return;
+            }
+
             cursorMovedDistance = 0;
             movementData = [];
             lastClickTime = now;
@@ -170,12 +175,27 @@
             return avgJitter < 1.5;
         }
 
+        function isLinearMovement(movementData) {
+            if (movementData.length < 5) return false;
+
+            let totalDeviation = 0;
+            let firstAngle = getAngle(movementData[0], movementData[movementData.length - 1]);
+
+            for (let i = 1; i < movementData.length; i++) {
+                let angle = getAngle(movementData[i - 1], movementData[i]);
+                let angleDiff = Math.abs(firstAngle - angle);
+                totalDeviation += angleDiff;
+            }
+
+            let avgDeviation = totalDeviation / movementData.length;
+            return avgDeviation < 20; // 20% tolerance for deviation
+        }
+
         function getAngle(p1, p2) {
             return Math.atan2(p2.y - p1.y, p2.x - p1.x) * (180 / Math.PI);
         }
 
         function failCaptcha(message, botReason) {
-            const box = document.getElementById('captchaBox');
             const status = document.getElementById('status');
             const botMessage = document.getElementById('botMessage');
 
@@ -183,9 +203,10 @@
             botMessage.textContent = `🚨 BOT DETECTED: ${botReason}`;
             botMessage.style.display = "block";
 
-            box.style.background = "#ff0000";
-            box.style.boxShadow = "0 0 16px #ff0000";
+            resetCaptcha();
+        }
 
+        function resetCaptcha() {
             verificationCount = 0;
             lastClickTime = 0;
             cursorMovedDistance = 0;
@@ -195,10 +216,8 @@
             movementData = [];
 
             setTimeout(() => {
-                status.textContent = `Click ${totalClicksRequired} times to verify`;
-                botMessage.style.display = "none";
-                box.style.background = "";
-                box.style.boxShadow = "";
+                document.getElementById('status').textContent = `Click ${totalClicksRequired} times to verify`;
+                document.getElementById('botMessage').style.display = "none";
             }, 2000);
         }
     </script>
