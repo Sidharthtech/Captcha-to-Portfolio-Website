@@ -46,6 +46,13 @@
             font-size: 14px;
             color: #ff4444;
         }
+        .bot-detected {
+            color: #ff0000;
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-top: 10px;
+            text-shadow: 0 0 8px #ff0000;
+        }
     </style>
 </head>
 <body>
@@ -54,6 +61,7 @@
         <h2 class="captcha-title" id="captchaTitle">I'm not a robot</h2>
         <div class="captcha-bar" id="captchaBox" onclick="verifyCaptcha(event)"></div>
         <p class="status" id="status">Click 3 times to verify</p>
+        <p class="bot-detected" id="botMessage" style="display: none;"></p>
     </div>
 
     <script>
@@ -65,6 +73,7 @@
         function verifyCaptcha(event) {
             const box = document.getElementById('captchaBox');
             const status = document.getElementById('status');
+            const botMessage = document.getElementById('botMessage');
 
             const x = event.clientX;
             const y = event.clientY;
@@ -72,24 +81,35 @@
 
             // Enforce minimum click delay (500ms)
             if (now - lastClickTime < 500) {
-                failCaptcha("Too fast! Wait and try again.");
+                failCaptcha("Too fast! Wait and try again.", "Clicking too fast detected!");
                 return;
             }
-            
+
             if (lastClick) {
                 const dx = x - lastClick.x;
                 const dy = y - lastClick.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 const angle = Math.atan2(dy, dx) * (180 / Math.PI);
 
-                // Ensure clicks are at least 20px apart and within 15-degree variation
-                if (distance < 20 || Math.abs(angle - lastClick.angle) > 15) {
-                    failCaptcha("Invalid click pattern! Restarting...");
+                // Ensure clicks are at least 20px apart
+                if (distance < 20) {
+                    failCaptcha("Clicks must be at least 20px apart!", "Same spot clicking detected!");
                     return;
                 }
+
+                // Ensure the angle variation is within 15 degrees
+                if (verificationCount > 1) { // First click has no angle reference
+                    const angleDiff = Math.abs(angle - lastClick.angle);
+                    if (angleDiff > 15) {
+                        failCaptcha("Stay on a straight path!", "Irregular movement detected!");
+                        return;
+                    }
+                }
+
+                lastClick.angle = angle;
             }
 
-            lastClick = { x, y, angle };
+            lastClick = { x, y, angle: 0 }; // Initialize angle after first click
             lastClickTime = now;
             verificationCount++;
 
@@ -108,11 +128,15 @@
             }
         }
 
-        function failCaptcha(message) {
+        function failCaptcha(message, botReason) {
             const box = document.getElementById('captchaBox');
             const status = document.getElementById('status');
+            const botMessage = document.getElementById('botMessage');
             
             status.textContent = `❌ ${message} Restarting in 2s...`;
+            botMessage.textContent = `🚨 BOT DETECTED: ${botReason}`;
+            botMessage.style.display = "block";
+
             box.style.background = "#ff0000";
             box.style.boxShadow = "0 0 16px #ff0000";
             
@@ -122,6 +146,7 @@
 
             setTimeout(() => {
                 status.textContent = `Click ${totalClicksRequired} times to verify`;
+                botMessage.style.display = "none";
                 box.style.background = "";
                 box.style.boxShadow = "";
             }, 2000);
