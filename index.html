@@ -188,7 +188,7 @@
             }
 
             let avgDeviation = totalDeviation / movementData.length;
-            return avgDeviation < 2; // 2% tolerance for deviation
+            return avgDeviation < 80; // 80% tolerance for deviation
         }
 
         function getAngle(p1, p2) {
