@@ -60,7 +60,7 @@
         let verificationCount = 0;
         const totalClicksRequired = 3;
         let lastClick = null; // Stores last click coordinates
-        let failedAttempts = 0; // Track failures
+        let lastClickTime = 0; // Tracks last click time
         
         function verifyCaptcha(event) {
             const box = document.getElementById('captchaBox');
@@ -68,7 +68,14 @@
 
             const x = event.clientX;
             const y = event.clientY;
+            const now = Date.now();
 
+            // Enforce minimum click delay (500ms)
+            if (now - lastClickTime < 500) {
+                failCaptcha("Too fast! Wait and try again.");
+                return;
+            }
+            
             if (lastClick) {
                 const dx = x - lastClick.x;
                 const dy = y - lastClick.y;
@@ -77,26 +84,13 @@
 
                 // Ensure clicks are at least 20px apart and within 15-degree variation
                 if (distance < 20 || Math.abs(angle - lastClick.angle) > 15) {
-                    failedAttempts++;
-                    status.textContent = `❌ Failed attempt! Restarting in 2s...`;
-                    box.style.background = "#ff0000";
-                    box.style.boxShadow = "0 0 16px #ff0000";
-                    
-                    verificationCount = 0;
-                    lastClick = null;
-
-                    setTimeout(() => {
-                        status.textContent = `Click ${totalClicksRequired} times to verify`;
-                        box.style.background = "";
-                        box.style.boxShadow = "";
-                    }, 2000);
-
+                    failCaptcha("Invalid click pattern! Restarting...");
                     return;
                 }
             }
 
             lastClick = { x, y, angle };
-
+            lastClickTime = now;
             verificationCount++;
 
             if (verificationCount < totalClicksRequired) {
@@ -112,6 +106,25 @@
                     window.location.href = originalUrl + "?verified=true";
                 }, 1000);
             }
+        }
+
+        function failCaptcha(message) {
+            const box = document.getElementById('captchaBox');
+            const status = document.getElementById('status');
+            
+            status.textContent = `❌ ${message} Restarting in 2s...`;
+            box.style.background = "#ff0000";
+            box.style.boxShadow = "0 0 16px #ff0000";
+            
+            verificationCount = 0;
+            lastClick = null;
+            lastClickTime = 0;
+
+            setTimeout(() => {
+                status.textContent = `Click ${totalClicksRequired} times to verify`;
+                box.style.background = "";
+                box.style.boxShadow = "";
+            }, 2000);
         }
     </script>
 
