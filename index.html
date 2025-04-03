@@ -15,7 +15,6 @@
             background-color: #0d0d0d;
             padding: 20px;
         }
-
         .captcha-container {
             text-align: center;
             border: 2px solid #444;
@@ -25,16 +24,13 @@
             background: #1a1a1a;
             width: 100%;
             max-width: 600px;
-            transition: box-shadow 0.3s ease;
         }
-
         .captcha-title {
             font-size: 1.2em;
             font-weight: bold;
             color: #ff0000;
             text-shadow: 0 0 8px #ff0000;
         }
-
         .captcha-bar {
             display: block;
             width: 40px;
@@ -43,20 +39,16 @@
             cursor: pointer;
             margin-top: 20px;
             border-radius: 8px;
-            transition: background 0.3s ease, box-shadow 0.3s ease;
         }
-
         .captcha-bar.checked {
             background: #00ff00;
             box-shadow: 0 0 16px #00ff00;
         }
-
         .status {
             margin-top: 10px;
             font-size: 14px;
             color: #ff4444;
         }
-
         .captcha-container.checked .status {
             color: #00ff00;
         }
@@ -71,21 +63,6 @@
     </div>
 
     <script>
-        let mouseMovements = [];
-        let lastMovement = null;
-
-        document.addEventListener('mousemove', (event) => {
-            const current = { x: event.clientX, y: event.clientY, time: Date.now() };
-            if (lastMovement) {
-                current.dx = current.x - lastMovement.x;
-                current.dy = current.y - lastMovement.y;
-                current.dt = current.time - lastMovement.time;
-            }
-            lastMovement = current;
-            mouseMovements.push(current);
-            if (mouseMovements.length > 500) mouseMovements.shift();
-        });
-
         function verifyCaptcha() {
             const box = document.getElementById('captchaBox');
             const status = document.getElementById('status');
@@ -93,12 +70,11 @@
             box.classList.add('checked');
             status.textContent = '✅ Verified!';
 
-            // Store verification flag in localStorage
-            localStorage.setItem("verifiedHuman", "true");
-
-            // Redirect to original site
+            // Retrieve original URL (if available)
             const originalUrl = sessionStorage.getItem("originalUrl") || "https://portfolio-website1-omega.vercel.app";
-            window.location.href = originalUrl;
+
+            // Redirect back with verification flag
+            window.location.href = originalUrl + "?verified=true";
         }
     </script>
 
