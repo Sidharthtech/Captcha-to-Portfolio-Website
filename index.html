@@ -31,7 +31,7 @@
             color: #ff0000;
             text-shadow: 0 0 8px #ff0000;
         }
-        .captcha-bar {
+        .captcha-box {
             display: block;
             width: 40px;
             height: 40px;
@@ -59,7 +59,7 @@
 
     <div class="captcha-container" id="captchaContainer">
         <h2 class="captcha-title" id="captchaTitle">I'm not a robot</h2>
-        <div class="captcha-bar" id="captchaBox" onclick="verifyCaptcha(event)"></div>
+        <div class="captcha-box" id="captchaBox" onclick="verifyCaptcha(event)"></div>
         <p class="status" id="status">Click 3 times to verify</p>
         <p class="bot-detected" id="botMessage" style="display: none;"></p>
     </div>
@@ -68,21 +68,23 @@
         let verificationCount = 0;
         const totalClicksRequired = 3;
         let lastClickTime = 0;
-        let cursorMoved = false;
         let lastMouseX = null;
         let lastMouseY = null;
+        let cursorMovedDistance = 0;
         let clickPositions = [];
+        let movementData = [];
 
         // Track cursor movement
         document.addEventListener("mousemove", (event) => {
-            if (lastMouseX === null || lastMouseY === null) {
-                lastMouseX = event.clientX;
-                lastMouseY = event.clientY;
-            } else if (event.clientX !== lastMouseX || event.clientY !== lastMouseY) {
-                cursorMoved = true;
-                lastMouseX = event.clientX;
-                lastMouseY = event.clientY;
+            if (lastMouseX !== null && lastMouseY !== null) {
+                let dx = event.clientX - lastMouseX;
+                let dy = event.clientY - lastMouseY;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+                cursorMovedDistance += distance;
+                movementData.push({ x: event.clientX, y: event.clientY });
             }
+            lastMouseX = event.clientX;
+            lastMouseY = event.clientY;
         });
 
         function verifyCaptcha(event) {
@@ -91,15 +93,15 @@
             const botMessage = document.getElementById('botMessage');
             const now = Date.now();
 
-            // Enforce minimum click delay (500ms)
-            if (now - lastClickTime < 500) {
+            // Enforce minimum click delay (700ms)
+            if (now - lastClickTime < 700) {
                 failCaptcha("Too fast! Slow down.", "Clicking too fast detected!");
                 return;
             }
 
-            // If no cursor movement detected before THIS click, fail the CAPTCHA
-            if (!cursorMoved) {
-                failCaptcha("Move your cursor before clicking!", "Cursor did not move before this click!");
+            // Ensure cursor moved at least 15px before clicking
+            if (cursorMovedDistance < 15) {
+                failCaptcha("Move your cursor more before clicking!", "Insufficient cursor movement detected!");
                 return;
             }
 
@@ -115,8 +117,15 @@
                 }
             }
 
-            // Reset movement detection for the next click
-            cursorMoved = false;
+            // Detect overly smooth movement before clicking (Bot-like behavior)
+            if (isSmoothMovement(movementData)) {
+                failCaptcha("Don't move so smoothly!", "Suspiciously smooth movement detected!");
+                return;
+            }
+
+            // Reset movement tracking for the next click
+            cursorMovedDistance = 0;
+            movementData = [];
             lastClickTime = now;
             verificationCount++;
 
@@ -136,7 +145,7 @@
         }
 
         function isStraightLine(positions) {
-            if (positions.length < 3) return false; // Need at least 3 clicks for straight-line check
+            if (positions.length < 3) return false;
 
             let totalAngleVariation = 0;
             for (let i = 2; i < positions.length; i++) {
@@ -144,12 +153,27 @@
                 let angle2 = getAngle(positions[i - 1], positions[i]);
                 let angleDiff = Math.abs(angle2 - angle1);
 
-                if (angleDiff > 10) { // Allow some natural variation (10°)
+                if (angleDiff > 5) { // Now strict to only 5° tolerance
                     return false;
                 }
                 totalAngleVariation += angleDiff;
             }
             return true;
+        }
+
+        function isSmoothMovement(movementData) {
+            if (movementData.length < 5) return false;
+
+            let totalJitter = 0;
+            for (let i = 1; i < movementData.length; i++) {
+                let dx = movementData[i].x - movementData[i - 1].x;
+                let dy = movementData[i].y - movementData[i - 1].y;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+
+                totalJitter += distance;
+            }
+            let avgJitter = totalJitter / movementData.length;
+            return avgJitter < 1.5; // If movement is TOO smooth, it's a bot!
         }
 
         function getAngle(p1, p2) {
@@ -160,7 +184,7 @@
             const box = document.getElementById('captchaBox');
             const status = document.getElementById('status');
             const botMessage = document.getElementById('botMessage');
-            
+
             status.textContent = `❌ ${message} Restarting in 2s...`;
             botMessage.textContent = `🚨 BOT DETECTED: ${botReason}`;
             botMessage.style.display = "block";
@@ -168,13 +192,13 @@
             box.style.background = "#ff0000";
             box.style.boxShadow = "0 0 16px #ff0000";
 
-            // Reset everything after failure
             verificationCount = 0;
             lastClickTime = 0;
-            cursorMoved = false;
+            cursorMovedDistance = 0;
             lastMouseX = null;
             lastMouseY = null;
             clickPositions = [];
+            movementData = [];
 
             setTimeout(() => {
                 status.textContent = `Click ${totalClicksRequired} times to verify`;
