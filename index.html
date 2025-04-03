@@ -122,9 +122,8 @@
         let mouseMovements = [];
         let lastMovement = null;
         let lastMouseMoveTime = null;
-        let canClick = true;  // Controls when the user can click again
+        let canClick = true;
 
-        // Track mouse movements
         document.addEventListener('mousemove', (event) => {
             const current = { x: event.clientX, y: event.clientY, time: Date.now() };
             if (lastMovement) {
@@ -136,11 +135,9 @@
             lastMouseMoveTime = Date.now();
             mouseMovements.push(current);
 
-            // Keep only the last 500 movements
             if (mouseMovements.length > 500) mouseMovements.shift();
         });
 
-        // Calculate movement angles
         function calculateAngle(m1, m2) {
             const dot = m1.dx * m2.dx + m1.dy * m2.dy;
             const mag1 = Math.sqrt(m1.dx ** 2 + m1.dy ** 2);
@@ -149,42 +146,45 @@
             return Math.acos(dot / (mag1 * mag2)) * (180 / Math.PI);
         }
 
-        // Check for linear movement (bot-like behavior)
         function isLinearMovement() {
             if (mouseMovements.length < 10) return false;
-
             let smallAngleCount = 0;
             for (let i = 2; i < mouseMovements.length; i++) {
                 const angle = calculateAngle(mouseMovements[i - 1], mouseMovements[i]);
                 if (angle < 15) smallAngleCount++;
             }
-
             return smallAngleCount / mouseMovements.length > 0.8;
         }
 
-        // Simple CAPTCHA verification without backend
         function verifyCaptcha() {
-            if (!canClick) return;  // Prevent clicking during wait period
+            if (!canClick) return;
 
             const box = document.getElementById('captchaBox');
             const status = document.getElementById('status');
             const container = document.getElementById('captchaContainer');
 
-            // Basic bot detection before allowing pass
             if (isLinearMovement() || Date.now() - lastMouseMoveTime > 2000) {
                 status.textContent = '❌ Bot detected. Please wait 2 seconds...';
-                canClick = false; // Disable clicking
+                canClick = false;
                 setTimeout(() => {
                     status.textContent = '⏳ Try again.';
-                    canClick = true; // Re-enable clicking after 2 seconds
+                    canClick = true;
                 }, 2000);
                 return;
             }
 
-            // If the movement looks human, mark as verified
             box.classList.add('checked');
             container.classList.add('checked');
             status.textContent = '✅ Verified!';
+
+            localStorage.setItem("verifiedHuman", "true");
+
+            const params = new URLSearchParams(window.location.search);
+            const redirectUrl = params.get("redirect") || "https://portfolio-website1-omega.vercel.app";
+            
+            setTimeout(() => {
+                window.location.href = redirectUrl;
+            }, 1000);
         }
     </script>
 
