@@ -74,7 +74,6 @@
         let clickPositions = [];
         let movementData = [];
 
-        // Track cursor movement
         document.addEventListener("mousemove", (event) => {
             if (lastMouseX !== null && lastMouseY !== null) {
                 let dx = event.clientX - lastMouseX;
@@ -93,19 +92,16 @@
             const botMessage = document.getElementById('botMessage');
             const now = Date.now();
 
-            // Enforce minimum click delay (700ms)
             if (now - lastClickTime < 700) {
                 failCaptcha("Too fast! Slow down.", "Clicking too fast detected!");
                 return;
             }
 
-            // Ensure cursor moved at least 15px before clicking
             if (cursorMovedDistance < 15) {
                 failCaptcha("Move your cursor more before clicking!", "Insufficient cursor movement detected!");
                 return;
             }
 
-            // Store click positions for straight-line detection
             let clickX = event.clientX;
             let clickY = event.clientY;
             clickPositions.push({ x: clickX, y: clickY });
@@ -117,13 +113,11 @@
                 }
             }
 
-            // Detect overly smooth movement before clicking (Bot-like behavior)
             if (isSmoothMovement(movementData)) {
                 failCaptcha("Don't move so smoothly!", "Suspiciously smooth movement detected!");
                 return;
             }
 
-            // Reset movement tracking for the next click
             cursorMovedDistance = 0;
             movementData = [];
             lastClickTime = now;
@@ -153,7 +147,7 @@
                 let angle2 = getAngle(positions[i - 1], positions[i]);
                 let angleDiff = Math.abs(angle2 - angle1);
 
-                if (angleDiff > 5) { // Now strict to only 5° tolerance
+                if (angleDiff > 20) { 
                     return false;
                 }
                 totalAngleVariation += angleDiff;
@@ -173,7 +167,7 @@
                 totalJitter += distance;
             }
             let avgJitter = totalJitter / movementData.length;
-            return avgJitter < 1.5; // If movement is TOO smooth, it's a bot!
+            return avgJitter < 1.5;
         }
 
         function getAngle(p1, p2) {
