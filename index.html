@@ -71,6 +71,7 @@
         let cursorMoved = false;
         let lastMouseX = null;
         let lastMouseY = null;
+        let clickPositions = [];
 
         // Track cursor movement
         document.addEventListener("mousemove", (event) => {
@@ -102,9 +103,20 @@
                 return;
             }
 
+            // Store click positions for straight-line detection
+            let clickX = event.clientX;
+            let clickY = event.clientY;
+            clickPositions.push({ x: clickX, y: clickY });
+
+            if (clickPositions.length > 2) {
+                if (isStraightLine(clickPositions)) {
+                    failCaptcha("Don't move in a straight line!", "Straight-line movement detected!");
+                    return;
+                }
+            }
+
             // Reset movement detection for the next click
             cursorMoved = false;
-
             lastClickTime = now;
             verificationCount++;
 
@@ -121,6 +133,27 @@
                     window.location.href = originalUrl + "?verified=true";
                 }, 1000);
             }
+        }
+
+        function isStraightLine(positions) {
+            if (positions.length < 3) return false; // Need at least 3 clicks for straight-line check
+
+            let totalAngleVariation = 0;
+            for (let i = 2; i < positions.length; i++) {
+                let angle1 = getAngle(positions[i - 2], positions[i - 1]);
+                let angle2 = getAngle(positions[i - 1], positions[i]);
+                let angleDiff = Math.abs(angle2 - angle1);
+
+                if (angleDiff > 10) { // Allow some natural variation (10°)
+                    return false;
+                }
+                totalAngleVariation += angleDiff;
+            }
+            return true;
+        }
+
+        function getAngle(p1, p2) {
+            return Math.atan2(p2.y - p1.y, p2.x - p1.x) * (180 / Math.PI);
         }
 
         function failCaptcha(message, botReason) {
@@ -141,6 +174,7 @@
             cursorMoved = false;
             lastMouseX = null;
             lastMouseY = null;
+            clickPositions = [];
 
             setTimeout(() => {
                 status.textContent = `Click ${totalClicksRequired} times to verify`;
