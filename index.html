@@ -37,20 +37,14 @@
             height: 40px;
             border: 2px solid #888;
             cursor: pointer;
-            margin-top: 20px;
+            margin: 20px auto;
             border-radius: 8px;
-        }
-        .captcha-bar.checked {
-            background: #00ff00;
-            box-shadow: 0 0 16px #00ff00;
+            transition: background 0.3s ease, box-shadow 0.3s ease;
         }
         .status {
             margin-top: 10px;
             font-size: 14px;
             color: #ff4444;
-        }
-        .captcha-container.checked .status {
-            color: #00ff00;
         }
     </style>
 </head>
@@ -59,22 +53,34 @@
     <div class="captcha-container" id="captchaContainer">
         <h2 class="captcha-title" id="captchaTitle">I'm not a robot</h2>
         <div class="captcha-bar" id="captchaBox" onclick="verifyCaptcha()"></div>
-        <p class="status" id="status">Not verified</p>
+        <p class="status" id="status">Click 3 times to verify</p>
     </div>
 
     <script>
+        let verificationCount = 0;
+        const totalClicksRequired = 3; // Number of verifications required
+
         function verifyCaptcha() {
             const box = document.getElementById('captchaBox');
             const status = document.getElementById('status');
 
-            box.classList.add('checked');
-            status.textContent = '✅ Verified!';
+            verificationCount++;
 
-            // Retrieve original URL (if available)
-            const originalUrl = sessionStorage.getItem("originalUrl") || "https://portfolio-website1-omega.vercel.app";
+            if (verificationCount < totalClicksRequired) {
+                status.textContent = `✔️ ${verificationCount}/${totalClicksRequired} verified. Keep going...`;
+            } else {
+                status.textContent = '✅ Fully Verified! Redirecting...';
+                box.style.background = '#00ff00';
+                box.style.boxShadow = '0 0 16px #00ff00';
 
-            // Redirect back with verification flag
-            window.location.href = originalUrl + "?verified=true";
+                // Retrieve original URL (if available)
+                const originalUrl = sessionStorage.getItem("originalUrl") || "https://portfolio-website1-omega.vercel.app";
+
+                // Redirect back with verification flag
+                setTimeout(() => {
+                    window.location.href = originalUrl + "?verified=true";
+                }, 1000);
+            }
         }
     </script>
 
