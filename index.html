@@ -68,17 +68,19 @@
         let verificationCount = 0;
         const totalClicksRequired = 3;
         let lastClickTime = 0;
-        let initialMouseX = null;
-        let initialMouseY = null;
         let cursorMoved = false;
+        let lastMouseX = null;
+        let lastMouseY = null;
 
-        // Track the initial cursor position
+        // Track cursor movement
         document.addEventListener("mousemove", (event) => {
-            if (initialMouseX === null || initialMouseY === null) {
-                initialMouseX = event.clientX;
-                initialMouseY = event.clientY;
-            } else if (event.clientX !== initialMouseX || event.clientY !== initialMouseY) {
-                cursorMoved = true; // If the mouse moves from the initial position, mark it as moved
+            if (lastMouseX === null || lastMouseY === null) {
+                lastMouseX = event.clientX;
+                lastMouseY = event.clientY;
+            } else if (event.clientX !== lastMouseX || event.clientY !== lastMouseY) {
+                cursorMoved = true;
+                lastMouseX = event.clientX;
+                lastMouseY = event.clientY;
             }
         });
 
@@ -94,11 +96,14 @@
                 return;
             }
 
-            // If no cursor movement detected before the first click, fail the CAPTCHA
-            if (verificationCount === 0 && !cursorMoved) {
-                failCaptcha("Move your cursor before clicking!", "Cursor did not move before first click!");
+            // If no cursor movement detected before THIS click, fail the CAPTCHA
+            if (!cursorMoved) {
+                failCaptcha("Move your cursor before clicking!", "Cursor did not move before this click!");
                 return;
             }
+
+            // Reset movement detection for the next click
+            cursorMoved = false;
 
             lastClickTime = now;
             verificationCount++;
@@ -134,8 +139,8 @@
             verificationCount = 0;
             lastClickTime = 0;
             cursorMoved = false;
-            initialMouseX = null;
-            initialMouseY = null;
+            lastMouseX = null;
+            lastMouseY = null;
 
             setTimeout(() => {
                 status.textContent = `Click ${totalClicksRequired} times to verify`;
